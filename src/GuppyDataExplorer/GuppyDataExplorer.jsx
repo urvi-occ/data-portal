@@ -68,7 +68,7 @@ class GuppyDataExplorer extends React.Component {
             tierAccessLimit={this.props.tierAccessLimit}
           />
         </GuppyWrapper>
-      </div>
+      </div >
     );
   }
 }

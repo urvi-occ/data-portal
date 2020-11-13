@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { AutoComplete, Input } from 'antd';
 import ConnectedFilter from '@gen3/guppy/dist/components/ConnectedFilter';
 import AccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/AccessibleFilter';
 import UnaccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/UnaccessibleFilter';
@@ -9,6 +10,38 @@ import {
   GuppyConfigType,
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
+
+const renderItem = (title, count) => ({
+  value: title,
+  label: (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+      }}
+    >
+      {title}
+      <span>
+        {count}
+      </span>
+    </div>
+  ),
+});
+
+const options = [
+  {
+    label: (<span>Project ID</span>),
+    options: [renderItem('parent-WHI_HMB-IRB_', 117675), renderItem('parent-WHI_HMB-IRB-NPU_', 117675)],
+  },
+  {
+    label: (<span>Libraries</span>),
+    options: [renderItem('AntDesign UI FAQ', 60100), renderItem('AntDesign FAQ', 30010)],
+  },
+  {
+    label: (<span>Articles</span>),
+    options: [renderItem('AntDesign design language', 100000)],
+  },
+];
 
 /**
  * For selectedAccessFilter the default value is 'Data with Access'
@@ -21,6 +54,7 @@ class ExplorerFilter extends React.Component {
     this.state = {
       selectedAccessFilter: (this.props.tierAccessLevel === 'regular') ? 'with-access' : 'all-data', // default value of selectedAccessFilter
       showTierAccessSelector: false,
+      searchTerm: '',
     };
   }
 
@@ -62,12 +96,12 @@ class ExplorerFilter extends React.Component {
   }
 
   /**
-   * For "regular" tier access level commons, we use this function parse
+   * For 'regular' tier access level commons, we use this function parse
    * aggsData and returned parsed aggregation for Guppy's ConnectedFilter.
-   * We do following steps for tier access fields/values (currently, field="project")
+   * We do following steps for tier access fields/values (currently, field='project')
    * 1. According to selected access filter (with, without, or all data access),
    *    we hide accessible or unaccessible items
-   * 2. We add "accessible" property to items so that filter component will show lock icon
+   * 2. We add 'accessible' property to items so that filter component will show lock icon
    */
   onProcessFilterAggsData = (aggsData) => {
     if (this.props.tierAccessLevel !== 'regular') {
@@ -82,7 +116,7 @@ class ExplorerFilter extends React.Component {
         res[field] = aggsData[field];
         return res;
       }
-      // if the field is in accessibleFieldObject, add "accessible=false"
+      // if the field is in accessibleFieldObject, add 'accessible=false'
       // to those items which are unaccessible
       const accessibleValues = this.props.accessibleFieldObject[field];
       const newHistogram = aggsData[field].histogram
@@ -114,6 +148,12 @@ class ExplorerFilter extends React.Component {
     // selectedAccessFilter will be one of: 'with-access', 'without-access', or 'all-data'
     this.setState({ selectedAccessFilter });
   };
+
+  handleSearchTermChange = (ev) => {
+    const searchTerm = ev.currentTarget.value;
+    this.setState({ searchTerm });
+    this.props.searchInFieldsAndValues(searchTerm);
+  }
 
   render() {
     const filterProps = {
@@ -171,6 +211,14 @@ class ExplorerFilter extends React.Component {
             />
           ) : (<React.Fragment />)
         }
+        <AutoComplete
+          dropdownClassName='certain-category-search-dropdown'
+          dropdownMatchSelectWidth={500}
+          style={{ width: '100%' }}
+          options={options}
+        >
+          <Input.Search value={this.state.searchTerm} onChange={this.handleSearchTermChange} size='large' placeholder='Search' />
+        </AutoComplete>
         {filterFragment}
       </div>
     );
@@ -191,6 +239,7 @@ ExplorerFilter.propTypes = {
   unaccessibleFieldObject: PropTypes.object, // inherit from GuppyWrapper
   adminAppliedPreFilters: PropTypes.object, // inherit from GuppyWrapper
   accessibleFieldCheckList: PropTypes.arrayOf(PropTypes.string), // inherit from GuppyWrapper
+  searchInFieldsAndValues: PropTypes.func.isRequired, // inherit from GuppyWrapper
   getAccessButtonLink: PropTypes.string,
   hideGetAccessButton: PropTypes.bool,
 };
@@ -200,9 +249,9 @@ ExplorerFilter.defaultProps = {
   filterConfig: {},
   guppyConfig: {},
   fieldMapping: [],
-  onFilterChange: () => {},
-  onUpdateAccessLevel: () => {},
-  onReceiveNewAggsData: () => {},
+  onFilterChange: () => { },
+  onUpdateAccessLevel: () => { },
+  onReceiveNewAggsData: () => { },
   tierAccessLimit: undefined,
   accessibleFieldObject: {},
   unaccessibleFieldObject: {},
