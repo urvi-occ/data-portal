@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { AutoComplete, Input } from 'antd';
+import { AutoComplete, Input, Spin } from 'antd';
 import ConnectedFilter from '@gen3/guppy/dist/components/ConnectedFilter';
 import AccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/AccessibleFilter';
 import UnaccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/UnaccessibleFilter';
@@ -11,7 +11,7 @@ import {
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
 
-const renderItem = (title, count) => ({
+const renderItem = (title, count = 1) => ({
   value: title,
   label: (
     <div
@@ -28,20 +28,20 @@ const renderItem = (title, count) => ({
   ),
 });
 
-const options = [
-  {
-    label: (<span>Project ID</span>),
-    options: [renderItem('parent-WHI_HMB-IRB_', 117675), renderItem('parent-WHI_HMB-IRB-NPU_', 117675)],
-  },
-  {
-    label: (<span>Libraries</span>),
-    options: [renderItem('AntDesign UI FAQ', 60100), renderItem('AntDesign FAQ', 30010)],
-  },
-  {
-    label: (<span>Articles</span>),
-    options: [renderItem('AntDesign design language', 100000)],
-  },
-];
+// const options = [
+//   {
+//     label: (<span>Project ID</span>),
+//     options: [renderItem('parent-WHI_HMB-IRB_', 117675), renderItem('parent-WHI_HMB-IRB-NPU_', 117675)],
+//   },
+//   {
+//     label: (<span>Libraries</span>),
+//     options: [renderItem('AntDesign UI FAQ', 60100), renderItem('AntDesign FAQ', 30010)],
+//   },
+//   {
+//     label: (<span>Articles</span>),
+//     options: [renderItem('AntDesign design language', 100000)],
+//   },
+// ];
 
 /**
  * For selectedAccessFilter the default value is 'Data with Access'
@@ -55,6 +55,8 @@ class ExplorerFilter extends React.Component {
       selectedAccessFilter: (this.props.tierAccessLevel === 'regular') ? 'with-access' : 'all-data', // default value of selectedAccessFilter
       showTierAccessSelector: false,
       searchTerm: '',
+      searchIsLoading: false,
+      searchOptions: [],
     };
   }
 
@@ -151,8 +153,40 @@ class ExplorerFilter extends React.Component {
 
   handleSearchTermChange = (ev) => {
     const searchTerm = ev.currentTarget.value;
-    this.setState({ searchTerm });
-    this.props.searchInFieldsAndValues(searchTerm);
+    this.setState({ searchTerm }, () => {
+      this.props.searchInFiltersAndValues(searchTerm).then((res) => {
+        console.log('res', res);
+        const matchedFields = {};
+        res.forEach((entry) => {
+          if (!entry._matched) {
+            throw new Error(`Failed to find _matched in entry ${entry}`);
+          }
+          entry._matched.forEach((match) => {
+            match.highlights.forEach((highlight) => {
+              const field = match.field;
+              if (!matchedFields[field]) {
+                matchedFields[field] = [];
+              }
+              matchedFields[field].push(highlight);
+            });
+          });
+        });
+        console.log('matchedFields', matchedFields);
+        // convert matchedFields to format expected by antd autocomplete
+        const searchOptions = [];
+        Object.entries(matchedFields).forEach(([field, highlights]) => {
+          console.log('field', field);
+          console.log('highlights', highlights);
+          searchOptions.push({
+            label: field,
+            options: highlights.map(renderItem),
+          });
+        });
+        this.setState({ searchOptions });
+      }).catch((err) => {
+        console.error(err);
+      });
+    });
   }
 
   render() {
@@ -212,10 +246,11 @@ class ExplorerFilter extends React.Component {
           ) : (<React.Fragment />)
         }
         <AutoComplete
+          notFoundContent={<Spin />}
           dropdownClassName='certain-category-search-dropdown'
           dropdownMatchSelectWidth={500}
           style={{ width: '100%' }}
-          options={options}
+          options={this.state.searchOptions}
         >
           <Input.Search value={this.state.searchTerm} onChange={this.handleSearchTermChange} size='large' placeholder='Search' />
         </AutoComplete>
@@ -239,7 +274,7 @@ ExplorerFilter.propTypes = {
   unaccessibleFieldObject: PropTypes.object, // inherit from GuppyWrapper
   adminAppliedPreFilters: PropTypes.object, // inherit from GuppyWrapper
   accessibleFieldCheckList: PropTypes.arrayOf(PropTypes.string), // inherit from GuppyWrapper
-  searchInFieldsAndValues: PropTypes.func.isRequired, // inherit from GuppyWrapper
+  searchInFiltersAndValues: PropTypes.func, // inherit from GuppyWrapper
   getAccessButtonLink: PropTypes.string,
   hideGetAccessButton: PropTypes.bool,
 };
@@ -257,6 +292,7 @@ ExplorerFilter.defaultProps = {
   unaccessibleFieldObject: {},
   adminAppliedPreFilters: {},
   accessibleFieldCheckList: [],
+  searchInFiltersAndValues: () => { },
   getAccessButtonLink: undefined,
   hideGetAccessButton: false,
 };
