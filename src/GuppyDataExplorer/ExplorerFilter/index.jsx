@@ -28,21 +28,6 @@ const renderItem = (title, count = 1) => ({
   ),
 });
 
-// const options = [
-//   {
-//     label: (<span>Project ID</span>),
-//     options: [renderItem('parent-WHI_HMB-IRB_', 117675), renderItem('parent-WHI_HMB-IRB-NPU_', 117675)],
-//   },
-//   {
-//     label: (<span>Libraries</span>),
-//     options: [renderItem('AntDesign UI FAQ', 60100), renderItem('AntDesign FAQ', 30010)],
-//   },
-//   {
-//     label: (<span>Articles</span>),
-//     options: [renderItem('AntDesign design language', 100000)],
-//   },
-// ];
-
 /**
  * For selectedAccessFilter the default value is 'Data with Access'
  * if TIER_ACCESS_LEVEL is 'regular'
@@ -155,12 +140,13 @@ class ExplorerFilter extends React.Component {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
-        console.log('res', res);
         const matchedFields = {};
         res.forEach((entry) => {
+          // eslint-disable-next-line no-underscore-dangle
           if (!entry._matched) {
             throw new Error(`Failed to find _matched in entry ${entry}`);
           }
+          // eslint-disable-next-line no-underscore-dangle
           entry._matched.forEach((match) => {
             match.highlights.forEach((highlight) => {
               const field = match.field;
@@ -171,12 +157,9 @@ class ExplorerFilter extends React.Component {
             });
           });
         });
-        console.log('matchedFields', matchedFields);
         // convert matchedFields to format expected by antd autocomplete
         const searchOptions = [];
         Object.entries(matchedFields).forEach(([field, highlights]) => {
-          console.log('field', field);
-          console.log('highlights', highlights);
           searchOptions.push({
             label: field,
             options: highlights.map(renderItem),
@@ -184,6 +167,7 @@ class ExplorerFilter extends React.Component {
         });
         this.setState({ searchOptions });
       }).catch((err) => {
+        // eslint-disable-next-line no-console
         console.error(err);
       });
     });
