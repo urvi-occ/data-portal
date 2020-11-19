@@ -11,8 +11,8 @@ import {
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
 
-const renderItem = (title, count = 1) => ({
-  value: title,
+const renderItem = (value, highlighted, count = 1, highlightStart = '<em>', highlightEnd = '</em>') => ({
+  value,
   label: (
     <div
       style={{
@@ -20,7 +20,7 @@ const renderItem = (title, count = 1) => ({
         justifyContent: 'space-between',
       }}
     >
-      {title}
+      {highlighted}
       <span>
         {count}
       </span>
@@ -140,32 +140,50 @@ class ExplorerFilter extends React.Component {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
-        const matchedFields = {};
-        res.forEach((entry) => {
-          // eslint-disable-next-line no-underscore-dangle
-          if (!entry._matched) {
-            throw new Error(`Failed to find _matched in entry ${entry}`);
-          }
-          // eslint-disable-next-line no-underscore-dangle
-          entry._matched.forEach((match) => {
-            match.highlights.forEach((highlight) => {
-              const field = match.field;
-              if (!matchedFields[field]) {
-                matchedFields[field] = [];
-              }
-              matchedFields[field].push(highlight);
+        const searchOptions = [];
+        if (res.filters && res.filters.length > 0) {
+          const options = res.filters.map(filter => renderItem(filter, filter));
+          searchOptions.push({
+            label: 'Filters',
+            options,
+          });
+        }
+        if (res.values) {
+          Object.entries(res.values).forEach(([filter, matchedValues]) => {
+            const options = matchedValues.map(({ value, matched, count }) => renderItem(value, matched, count));
+            searchOptions.push({
+              label: filter,
+              options,
             });
           });
-        });
-        // convert matchedFields to format expected by antd autocomplete
-        const searchOptions = [];
-        Object.entries(matchedFields).forEach(([field, highlights]) => {
-          searchOptions.push({
-            label: field,
-            options: highlights.map(renderItem),
-          });
-        });
+        }
         this.setState({ searchOptions });
+        // const matchedFields = {};
+        // res.forEach((entry) => {
+        //   // eslint-disable-next-line no-underscore-dangle
+        //   if (!entry._matched) {
+        //     throw new Error(`Failed to find _matched in entry ${entry}`);
+        //   }
+        //   // eslint-disable-next-line no-underscore-dangle
+        //   entry._matched.forEach((match) => {
+        //     match.highlights.forEach((highlight) => {
+        //       const field = match.field;
+        //       if (!matchedFields[field]) {
+        //         matchedFields[field] = [];
+        //       }
+        //       matchedFields[field].push(highlight);
+        //     });
+        //   });
+        // });
+        // // convert matchedFields to format expected by antd autocomplete
+        // const searchOptions = [];
+        // Object.entries(matchedFields).forEach(([field, highlights]) => {
+        //   searchOptions.push({
+        //     label: field,
+        //     options: highlights.map(renderItem),
+        //   });
+        // });
+        // this.setState({ searchOptions });
       }).catch((err) => {
         // eslint-disable-next-line no-console
         console.error(err);
@@ -230,7 +248,6 @@ class ExplorerFilter extends React.Component {
           ) : (<React.Fragment />)
         }
         <AutoComplete
-          notFoundContent={<Spin />}
           dropdownClassName='certain-category-search-dropdown'
           dropdownMatchSelectWidth={500}
           style={{ width: '100%' }}
