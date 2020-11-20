@@ -11,7 +11,28 @@ import {
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
 
-const renderItem = (filter, value, highlighted, count = 1, highlightStart = '<em>', highlightEnd = '</em>') => ({
+// formatHighlighted takes a string which has tags embedded in it indicating the start
+// and end of a highlight. It safely replaces the tags with real HTML <em> elements.
+const formatHighlighted = (highlight, tagOpen = '<em>', tagClose = '</em>') => {
+  // assuming only one highlight (not actually the case)
+  // TODO adapt to work for multi highlights
+  // get index of tag start
+  // get index of tag end
+  // split higlighted into (0, tag start), (tag start, tag end), (tag end)
+  // replace (tag start, tag end) with <em>(tag start, tag end)</em>
+  const tagOpenStart = highlight.indexOf(tagOpen);
+  const tagOpenEnd = tagOpenStart + tagOpen.length;
+  const tagCloseStart = highlight.indexOf(tagClose);
+  const tagCloseEnd = tagCloseStart + tagClose.length;
+  if (tagOpenStart === -1 || tagCloseStart === -1) {
+    return highlight;
+  }
+  return (<span>
+    {highlight.slice(0, tagOpenStart)}<em>{highlight.slice(tagOpenEnd, tagCloseStart)}</em>{highlight.slice(tagCloseEnd)}
+  </span>);
+};
+
+const renderItem = (filter, value, highlighted, count = 1) => ({
   value: `${filter}--${value}`,
   label: (
     <div
@@ -20,7 +41,7 @@ const renderItem = (filter, value, highlighted, count = 1, highlightStart = '<em
         justifyContent: 'space-between',
       }}
     >
-      {highlighted}
+      {formatHighlighted(highlighted)}
       <span>
         {count}
       </span>
