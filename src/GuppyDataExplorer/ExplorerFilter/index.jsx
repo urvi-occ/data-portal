@@ -11,8 +11,8 @@ import {
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
 
-const renderItem = (value, highlighted, count = 1, highlightStart = '<em>', highlightEnd = '</em>') => ({
-  value,
+const renderItem = (filter, value, highlighted, count = 1, highlightStart = '<em>', highlightEnd = '</em>') => ({
+  value: `${filter}--${value}`,
   label: (
     <div
       style={{
@@ -140,9 +140,10 @@ class ExplorerFilter extends React.Component {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
+        console.log('search results', res);
         const searchOptions = [];
         if (res.filters && res.filters.length > 0) {
-          const options = res.filters.map(filter => renderItem(filter, filter));
+          const options = res.filters.map(filter => renderItem('Filters', filter, filter));
           searchOptions.push({
             label: 'Filters',
             options,
@@ -150,7 +151,7 @@ class ExplorerFilter extends React.Component {
         }
         if (res.values) {
           Object.entries(res.values).forEach(([filter, matchedValues]) => {
-            const options = matchedValues.map(({ value, matched, count }) => renderItem(value, matched, count));
+            const options = matchedValues.map(({ value, matched, count }) => renderItem(filter, value, matched, count));
             searchOptions.push({
               label: filter,
               options,
