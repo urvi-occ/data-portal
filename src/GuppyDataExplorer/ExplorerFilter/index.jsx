@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { AutoComplete, Input, Spin } from 'antd';
+import { AutoComplete, Input } from 'antd';
 import ConnectedFilter from '@gen3/guppy/dist/components/ConnectedFilter';
 import AccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/AccessibleFilter';
 import UnaccessibleFilter from '@gen3/guppy/dist/components/ConnectedFilter/UnaccessibleFilter';
@@ -27,9 +27,8 @@ const formatHighlighted = (highlight, tagOpen = '<em>', tagClose = '</em>') => {
   if (tagOpenStart === -1 || tagCloseStart === -1) {
     return highlight;
   }
-  return (<span>
-    {highlight.slice(0, tagOpenStart)}<em>{highlight.slice(tagOpenEnd, tagCloseStart)}</em>{highlight.slice(tagCloseEnd)}
-  </span>);
+  // eslint-disable-next-line max-len
+  return (<span>{highlight.slice(0, tagOpenStart)}<em>{highlight.slice(tagOpenEnd, tagCloseStart)}</em>{highlight.slice(tagCloseEnd)}</span>);
 };
 
 const renderItem = (filter, value, highlighted, count = 1) => ({
@@ -161,7 +160,6 @@ class ExplorerFilter extends React.Component {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
-        console.log('search results', res);
         const searchOptions = [];
         if (res.filters && res.filters.length > 0) {
           const options = res.filters.map(filter => renderItem('Filters', filter, filter));
@@ -172,7 +170,9 @@ class ExplorerFilter extends React.Component {
         }
         if (res.values) {
           Object.entries(res.values).forEach(([filter, matchedValues]) => {
-            const options = matchedValues.map(({ value, matched, count }) => renderItem(filter, value, matched, count));
+            const options = matchedValues.map(
+              ({ value, matched, count }) => renderItem(filter, value, matched, count),
+            );
             searchOptions.push({
               label: filter,
               options,
