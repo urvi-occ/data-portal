@@ -11,6 +11,12 @@ import {
 } from '../configTypeDef';
 import { checkForNoAccessibleProject, checkForFullAccessibleProject } from '../GuppyDataExplorerHelper';
 
+const capitalizeFirstLetter = (str) => {
+  const res = str.replace(/_|\./gi, ' ');
+  return res.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+};
+
+
 // formatHighlighted takes a string which has tags embedded in it indicating the start
 // and end of a highlight. It safely replaces the tags with real HTML <em> elements.
 const formatHighlighted = (highlight, tagOpen = '<em>', tagClose = '</em>') => {
@@ -151,10 +157,31 @@ class ExplorerFilter extends React.Component {
     return newAggsData;
   };
 
+  getFilterDisplayName = (filter) => {
+    const overrideName = this.props.guppyConfig.fieldMapping.find(
+      entry => (entry.field === filter),
+    );
+    const label = overrideName ? overrideName.name : capitalizeFirstLetter(filter);
+    return label;
+  };
+
   handleAccessSelectorChange = (selectedAccessFilter) => {
     // selectedAccessFilter will be one of: 'with-access', 'without-access', or 'all-data'
     this.setState({ selectedAccessFilter });
   };
+
+  handleFulltextSearchSelect = (selectedValue) => {
+    // clear the current search term
+    this.setState({ searchTerm: '' });
+    // parse the value (format `filterName--value`)
+    const [filter, value] = selectedValue.split('--');
+    // select the selected value
+    this.setState({
+      selectedValuesOverride: { [filter]: {
+        selectedValues: [value],
+      } },
+    });
+  }
 
   handleSearchTermChange = (ev) => {
     const searchTerm = ev.currentTarget.value;
@@ -162,7 +189,11 @@ class ExplorerFilter extends React.Component {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
         const searchOptions = [];
         if (res.filters && res.filters.length > 0) {
-          const options = res.filters.map(filter => renderItem('Filters', filter, filter));
+          const options = res.filters.map(filter => renderItem(
+            'Filters',
+            filter,
+            this.getFilterDisplayName(filter),
+          ));
           searchOptions.push({
             label: 'Filters',
             options,
@@ -174,7 +205,7 @@ class ExplorerFilter extends React.Component {
               ({ value, matched, count }) => renderItem(filter, value, matched, count),
             );
             searchOptions.push({
-              label: filter,
+              label: this.getFilterDisplayName(filter),
               options,
             });
           });
@@ -213,6 +244,7 @@ class ExplorerFilter extends React.Component {
     });
   }
 
+
   render() {
     const filterProps = {
       filterConfig: this.props.filterConfig,
@@ -227,6 +259,7 @@ class ExplorerFilter extends React.Component {
       lockedTooltipMessage: this.props.tierAccessLevel === 'regular' ? `You may only view summary information for this project. You do not have ${this.props.guppyConfig.dataType}-level access.` : '',
       disabledTooltipMessage: this.props.tierAccessLevel === 'regular' ? `This resource is currently disabled because you are exploring restricted data. When exploring restricted data you are limited to exploring cohorts of ${this.props.tierAccessLimit} ${this.props.guppyConfig.nodeCountTitle.toLowerCase() || this.props.guppyConfig.dataType} or more.` : '',
       accessibleFieldCheckList: this.props.accessibleFieldCheckList,
+      selectedValuesOverride: this.state.selectedValuesOverride,
     };
     let filterFragment;
     switch (this.state.selectedAccessFilter) {
@@ -274,6 +307,8 @@ class ExplorerFilter extends React.Component {
           dropdownMatchSelectWidth={500}
           style={{ width: '100%' }}
           options={this.state.searchOptions}
+          onSelect={this.handleFulltextSearchSelect}
+          value={this.state.searchTerm}
         >
           <Input.Search value={this.state.searchTerm} onChange={this.handleSearchTermChange} size='large' placeholder='Search' />
         </AutoComplete>
