@@ -69,6 +69,7 @@ class ExplorerFilter extends React.Component {
       searchIsLoading: false,
       searchOptions: [],
     };
+    this.connectedFilter = React.createRef();
   }
 
   getSnapshotBeforeUpdate(prevProps) {
@@ -175,30 +176,37 @@ class ExplorerFilter extends React.Component {
     this.setState({ searchTerm: '' });
     // parse the value (format `filterName--value`)
     const [filter, value] = selectedValue.split('--');
-    // select the selected value
-    this.setState({
-      selectedValuesOverride: { [filter]: {
-        selectedValues: [value],
-      } },
-    });
+    // If the user selected a filter instead of a value,
+    // just scroll to that filter
+    if (filter === 'Filters') {
+      // TODO implement scrolling to filter
+      return;
+    }
+    // select the selected value and scroll to the selected filter
+    if (this.connectedFilter.current) {
+      this.connectedFilter.current.selectValue(filter, value);
+    }
   }
 
   handleSearchTermChange = (ev) => {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
+        console.log(`Search results for '${searchTerm}'`, res);
         const searchOptions = [];
+        // Render Filters returned
         if (res.filters && res.filters.length > 0) {
-          const options = res.filters.map(filter => renderItem(
+          const options = res.filters.map(({ value, matched }) => renderItem(
             'Filters',
-            filter,
-            this.getFilterDisplayName(filter),
+            value,
+            matched,
           ));
           searchOptions.push({
             label: 'Filters',
             options,
           });
         }
+        // Render Values returned
         if (res.values) {
           Object.entries(res.values).forEach(([filter, matchedValues]) => {
             const options = matchedValues.map(
@@ -211,32 +219,6 @@ class ExplorerFilter extends React.Component {
           });
         }
         this.setState({ searchOptions });
-        // const matchedFields = {};
-        // res.forEach((entry) => {
-        //   // eslint-disable-next-line no-underscore-dangle
-        //   if (!entry._matched) {
-        //     throw new Error(`Failed to find _matched in entry ${entry}`);
-        //   }
-        //   // eslint-disable-next-line no-underscore-dangle
-        //   entry._matched.forEach((match) => {
-        //     match.highlights.forEach((highlight) => {
-        //       const field = match.field;
-        //       if (!matchedFields[field]) {
-        //         matchedFields[field] = [];
-        //       }
-        //       matchedFields[field].push(highlight);
-        //     });
-        //   });
-        // });
-        // // convert matchedFields to format expected by antd autocomplete
-        // const searchOptions = [];
-        // Object.entries(matchedFields).forEach(([field, highlights]) => {
-        //   searchOptions.push({
-        //     label: field,
-        //     options: highlights.map(renderItem),
-        //   });
-        // });
-        // this.setState({ searchOptions });
       }).catch((err) => {
         // eslint-disable-next-line no-console
         console.error(err);
@@ -267,7 +249,7 @@ class ExplorerFilter extends React.Component {
       filterFragment = (
         <React.Fragment>
           <h4>Filters</h4>
-          <ConnectedFilter {...filterProps} />
+          <ConnectedFilter ref={this.connectedFilter} {...filterProps} />
         </React.Fragment>
       );
       break;
@@ -275,7 +257,7 @@ class ExplorerFilter extends React.Component {
       filterFragment = (
         <React.Fragment>
           <h4>Filters</h4>
-          <AccessibleFilter {...filterProps} />
+          <AccessibleFilter ref={this.connectedFilter} {...filterProps} />
         </React.Fragment>
       );
       break;
@@ -283,7 +265,7 @@ class ExplorerFilter extends React.Component {
       filterFragment = (
         <React.Fragment>
           <h4>Filters</h4>
-          <UnaccessibleFilter {...filterProps} />
+          <UnaccessibleFilter ref={this.connectedFilter} {...filterProps} />
         </React.Fragment>
       );
       break;
