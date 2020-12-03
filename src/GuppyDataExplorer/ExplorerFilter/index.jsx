@@ -179,12 +179,13 @@ class ExplorerFilter extends React.Component {
     // If the user selected a filter instead of a value,
     // just scroll to that filter
     if (filter === 'Filters') {
-      // TODO implement scrolling to filter
+      this.connectedFilter.current.scrollToFilter(value);
       return;
     }
     // select the selected value and scroll to the selected filter
     if (this.connectedFilter.current) {
       this.connectedFilter.current.selectValue(filter, value);
+      this.connectedFilter.current.scrollToFilter(filter);
     }
   }
 
