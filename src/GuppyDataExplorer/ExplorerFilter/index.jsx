@@ -193,7 +193,6 @@ class ExplorerFilter extends React.Component {
     const searchTerm = ev.currentTarget.value;
     this.setState({ searchTerm }, () => {
       this.props.searchInFiltersAndValues(searchTerm).then((res) => {
-        console.log(`Search results for '${searchTerm}'`, res);
         const searchOptions = [];
         // Render Filters returned
         if (res.filters && res.filters.length > 0) {
