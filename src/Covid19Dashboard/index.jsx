@@ -4,7 +4,7 @@ import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import 'react-tabs/style/react-tabs.less';
 
-import { covid19DashboardConfig, mapboxAPIToken, auspiceUrl } from '../localconf';
+import { covid19DashboardConfig, mapboxAPIToken, auspiceUrl, auspiceUrlIL } from '../localconf';
 import Popup from '../components/Popup';
 import Spinner from '../components/Spinner';
 import WorldMapChart from './WorldMapChart';
@@ -307,6 +307,20 @@ class Covid19Dashboard extends React.Component {
                     className='covid19-dashboard_auspice__iframe'
                     src={auspiceUrl}
                   />
+                }
+              </div>
+            </TabPanel>
+            <TabPanel className='covid19-dashboard_panel'>
+              <div className='covid19-dashboard_auspice'>
+                {/* this component doesn't need the mapboxAPIToken but it's a way to make
+                sure this is the COVID19 Commons and the iframe contents will load */}
+                { mapboxAPIToken &&
+                <iframe
+                    title='Auspice'
+                    frameBorder='0'
+                    className='covid19-dashboard_auspice__iframe'
+                    src={auspiceUrlIL}
+                />
                 }
               </div>
             </TabPanel>
