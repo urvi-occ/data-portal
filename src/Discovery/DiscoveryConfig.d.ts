@@ -23,9 +23,7 @@ export interface DiscoveryConfig {
                 enabled: boolean,
                 placeholder?: string
                 // searchTags: boolean, // not supported, consider removing
-                searchableTextFields?: string[] // list of properties in data to make searchable.
-                                                // if not present, only fields visible in the table
-                                                // will be searchable.
+                // searchableTextFields: string[], // not supported, consider removing
             }
         },
         authorization: {
@@ -41,25 +39,13 @@ export interface DiscoveryConfig {
             //         field: string
             //     }
             // }
-        },
-        advSearchFilters: {
-            enabled: boolean,
-            field: string,
-            filters: {
-                key: string
-                // multiSelectBehavior?: 'AND' | 'OR' // defaults to OR // not yet supported
-                keyDisplayName?: string
-                valueDisplayNames?: {
-                    [value: string]: string
-                }
-            }[]
         }
     },
     aggregations: AggregationConfig[],
     tagSelector: {
-        title?: string
-        showTagCategoryNames?: boolean
+        title: string
     },
+    tagColumnWidth: string,
     studyColumns: {
         name: string
         field: string
@@ -68,6 +54,7 @@ export interface DiscoveryConfig {
         valueIfNotAvailable?: string | number
         ellipsis?: boolean
         width?: string | number
+        hrefValueFromField?: 'string'
     }[],
     studyPreviewField: {
         name: string,
@@ -82,24 +69,21 @@ export interface DiscoveryConfig {
         header?: {
             field: string
         },
+        downloadLinks?: {
+            field: string
+            name?: string
+        },
         fieldsToShow: {
             groupName?: string
-            groupWidth?: 'half' | 'full' // defaults to `'half'`
-            // showBackground?: boolean // defaults to `true`
             includeName?: boolean,
             fields: StudyPageFieldConfig[]
         }[]
-        // descriptionField: {
-        //     name: string
-        //     field: string
-        //     includeIfNotAvailable?: boolean // defaults to false
-        //     valueIfNotAvailable?: string[] // defaults to 'n/a'
-        // }
     },
     minimalFieldMapping: {
         tagsListFieldName: string,
         authzField: string,
-        uid: string
+        uid: string,
+        commons: string
     },
     tagCategories: {
         name: string,
@@ -110,7 +94,7 @@ export interface DiscoveryConfig {
 export interface StudyPageFieldConfig {
     name: string
     field: string
-    contentType: 'string' | 'number' | 'paragraphs' | 'link' | 'tags'
+    contentType: 'string' | 'number' | 'paragraphs' | 'link'
     includeName?: boolean
     includeIfNotAvailable?: boolean
     valueIfNotAvailable?: string | number
