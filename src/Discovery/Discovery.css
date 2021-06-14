@@ -46,12 +46,25 @@
 
 .discovery-header__stats-container {
   height: 100%;
+  width: 17%;
   position: relative;
   flex: 1 0 auto;
   display: flex;
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
+}
+
+.discovery-header__stats-wrapper {
+  display: inline-block;
+}
+
+.discovery-header__stats-wrapper#Studies {
+  width: 65px;
+}
+
+.discovery-header__stats-wrapper[data-aggregation-type="TotalSubjects"] {
+  width: 135px;
 }
 
 .discovery-header__stat {
@@ -61,7 +74,7 @@
 
 .discovery-header__stat-border {
   width: 1px;
-  height: 100px;
+  height: 150px;
   border-left: solid #e7e7e7 1px;
 }
 
@@ -99,6 +112,15 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
+  font-weight: bold;
+  overflow-y: scroll;
+  overflow-x: visible;
+  max-width: 290px;
+  height: 111px;
+}
+
+.discovery-header__tag-group::-webkit-scrollbar {
+  display: none;
 }
 
 .discovery-header__tag-btn {
