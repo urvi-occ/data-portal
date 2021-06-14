@@ -16,6 +16,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  List,
 } from 'antd';
 
 import {
@@ -32,9 +33,15 @@ import {
 } from '@ant-design/icons';
 
 import { fetchWithCreds } from '../actions';
-import { manifestServiceApiPath, hostname } from '../localconf';
+import { manifestServiceApiPath, hostname, userApiPath } from '../localconf';
 import { DiscoveryConfig } from './DiscoveryConfig';
 import './Discovery.css';
+import DiscoverySummary from './DiscoverySummary';
+import DiscoveryTagViewer from './DiscoveryTagViewer';
+import { DiscoveryListView } from './DiscoveryListView';
+
+
+const { Panel } = Collapse;
 
 const accessibleFieldName = '__accessible';
 export enum AccessLevel {
@@ -58,6 +65,12 @@ interface AggregationConfig {
   name: string
   field: string
   type: 'sum' | 'count'
+}
+
+interface ListItem {
+  title: string,
+  description: string,
+  guid: string
 }
 
 const renderAggregation = (aggregation: AggregationConfig, studies: any[] | null): string => {
@@ -321,6 +334,7 @@ const Discovery: React.FunctionComponent<DiscoveryBetaProps> = (props: Discovery
   const columns = config.studyColumns.map(column => ({
     title: <div className='discovery-table-header'>{column.name}</div>,
     ellipsis: !!column.ellipsis,
+    textWrap: 'word-break',
     width: column.width,
     render: (_, record) => {
       const value = record[column.field];
@@ -342,6 +356,10 @@ const Discovery: React.FunctionComponent<DiscoveryBetaProps> = (props: Discovery
           return highlightSearchTerm(value, searchTerm).highlighted;
         }
       }
+      if (column.hrefValueFromField) {
+        return <a href={`//${record[column.hrefValueFromField]}`} target='_blank' rel='noreferrer'>{ renderFieldContent(value, column.contentType) }</a>;
+      }
+
       return renderFieldContent(value, column.contentType, config);
     },
   }),
@@ -349,13 +367,17 @@ const Discovery: React.FunctionComponent<DiscoveryBetaProps> = (props: Discovery
   columns.push(
     {
       title: <div className='discovery-table-header'>Tags</div>,
+      textWrap: 'word-break',
       ellipsis: false,
-      width: undefined,
+      width: config.tagColumnWidth || '200px',
       render: (_, record) => (
         <React.Fragment>
           {record.tags.map(({ name, category }) => {
             const isSelected = !!selectedTags[name];
             const color = getTagColor(category, config);
+            if (typeof name !== 'string') {
+              return null;
+            }
             return (
               <Tag
                 key={record.name + name}
@@ -410,7 +432,8 @@ const Discovery: React.FunctionComponent<DiscoveryBetaProps> = (props: Discovery
       ],
       onFilter: (value, record) => record[accessibleFieldName] === value,
       ellipsis: false,
-      width: undefined,
+      width: '106px',
+      textWrap: 'word-break',
       render: (_, record) => {
         if (record[accessibleFieldName] === AccessLevel.NOTAVAILABLE) {
           return (
@@ -938,6 +961,37 @@ const Discovery: React.FunctionComponent<DiscoveryBetaProps> = (props: Discovery
           })}
         </div>
       </div>
+      { (config.studyPageFields.downloadLinks && config.studyPageFields.downloadLinks.field &&
+        modalData[config.studyPageFields.downloadLinks.field]) ?
+        <Collapse defaultActiveKey={['1']}>
+          <Panel header={config.studyPageFields.downloadLinks.name || 'Data Download Links'} key='1'>
+            <List
+              itemLayout='horizontal'
+              dataSource={modalData[config.studyPageFields.downloadLinks.field]}
+              renderItem={(item:ListItem) => (
+                <List.Item
+                  actions={[<Button
+                    href={`${userApiPath}/data/download/${item.guid}?expires_in=900&redirect`}
+                    target='_blank'
+                    type='text'
+                    // disable button if data has no GUID
+                    disabled={!item.guid}
+                    icon={<DownloadOutlined />}
+                  >
+                      Download File
+                  </Button>]}
+                >
+                  <List.Item.Meta
+                    title={item.title}
+                    description={item.description || ''}
+                  />
+                </List.Item>
+              )}
+            />
+          </Panel>
+        </Collapse>
+        : null
+      }
     </Drawer>
   </div>);
 };
