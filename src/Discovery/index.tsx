@@ -103,14 +103,24 @@ const DiscoveryWithMDSBackend: React.FC<{
         }
         const studiesWithAccessibleField = rawStudies.map((study) => {
           let accessible: AccessLevel;
-          if (supportedValues?.pending?.enabled && dataAvailabilityField && study[dataAvailabilityField] === 'pending') {
-            accessible = AccessLevel.PENDING;
-          } else if (supportedValues?.notAvailable?.enabled && !study[authzField]) {
+          if (supportedValues?.unaccessible?.enabled
+            && dataAvailabilityField
+            && study[dataAvailabilityField] === 'unaccessible') {
+            accessible = AccessLevel.UNACCESSIBLE;
+          } else if (supportedValues?.notAvailable?.enabled
+            && dataAvailabilityField
+            && study[dataAvailabilityField] === 'not_available') {
             accessible = AccessLevel.NOT_AVAILABLE;
+          } else if (supportedValues?.waiting?.enabled && !study[authzField]) {
+            accessible = AccessLevel.WAITING;
           } else {
             let authMapping;
             if (isEnabled('discoveryUseAggWTS')) {
-              authMapping = props.userAggregateAuthMappings[(study.commons_url || hostnameWithSubdomain)] || {};
+              let commonsURL = study.commons_url;
+              if (commonsURL && commonsURL.startsWith('http')) {
+                commonsURL = new URL(commonsURL).hostname;
+              }
+              authMapping = props.userAggregateAuthMappings[(commonsURL || hostnameWithSubdomain)] || {};
             } else {
               authMapping = props.userAuthMapping;
             }

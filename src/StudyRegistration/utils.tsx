@@ -2,6 +2,7 @@ import {
   studyRegistrationConfig, discoveryConfig, mdsURL, cedarWrapperURL, userAPIPath, requestorPath,
 } from '../localconf';
 import { fetchWithCreds } from '../actions';
+import { validFileNameChecks } from '../utils';
 
 const STUDY_DATA_FIELD = 'gen3_discovery'; // field in the MDS response that contains the study data
 
@@ -22,26 +23,48 @@ export const preprocessStudyRegistrationMetadata = async (username, metadataID, 
       // it should already be there, but avoid errors if for some reason it's not
       metadataToUpdate.STUDY_DATA_FIELD = {};
     }
-    if (tagField && updatedValues.repository) {
-      if (!metadataToUpdate[STUDY_DATA_FIELD][tagField]) {
-        metadataToUpdate[STUDY_DATA_FIELD][tagField] = [];
-      }
-      metadataToUpdate[STUDY_DATA_FIELD][tagField].push({
-        name: updatedValues.repository,
-        category: 'Data Repository',
-      });
-    }
     metadataToUpdate[STUDY_DATA_FIELD][studyRegistrationValidationField] = true;
     metadataToUpdate[STUDY_DATA_FIELD][studyRegistrationTrackingField] = username;
 
-    // add all repository_study_ids as separate objects
-    if (updatedValues.repository_study_ids?.length > 0) {
-      const tempStudyIDObj = updatedValues.repository_study_ids.map((studyId) => ({
-        repository_name: updatedValues.repository,
-        repository_study_ID: studyId,
-      }));
+    // data_repositories related metadata setup
+    // check if data_repositories has already been altered before (non-empty)
+    if (metadataToUpdate[STUDY_DATA_FIELD]?.study_metadata?.metadata_location?.data_repositories
+      && Array.isArray(metadataToUpdate[STUDY_DATA_FIELD].study_metadata.metadata_location.data_repositories)
+      && metadataToUpdate[STUDY_DATA_FIELD].study_metadata.metadata_location.data_repositories.length === 0
+    ) {
+      // add all repository_study_ids as separate objects
+      let tempStudyIDObj:any = [];
+      if (updatedValues.repository_study_ids?.length > 0) {
+        tempStudyIDObj = updatedValues.repository_study_ids.map((studyId) => ({
+          repository_name: updatedValues.repository,
+          repository_study_ID: studyId,
+        }));
+      } else if (updatedValues.repository) {
+        tempStudyIDObj = [{
+          repository_name: updatedValues.repository,
+          repository_study_ID: '',
+          repository_study_link: '',
+          repository_persistent_ID: '',
+        }];
+      }
       metadataToUpdate[STUDY_DATA_FIELD].study_metadata.metadata_location.data_repositories = tempStudyIDObj;
+      if (tagField && updatedValues.repository) {
+        if (!metadataToUpdate[STUDY_DATA_FIELD][tagField]) {
+          metadataToUpdate[STUDY_DATA_FIELD][tagField] = [];
+        }
+        // don't push duplicated tags
+        if (!metadataToUpdate[STUDY_DATA_FIELD][tagField].includes({
+          name: updatedValues.repository,
+          category: 'Data Repository',
+        })) {
+          metadataToUpdate[STUDY_DATA_FIELD][tagField].push({
+            name: updatedValues.repository,
+            category: 'Data Repository',
+          });
+        }
+      }
     }
+
     metadataToUpdate[STUDY_DATA_FIELD].study_metadata.metadata_location.clinical_trials_study_ID = updatedValues.clinical_trials_id;
     if (updatedValues.clinical_trials_id) {
       metadataToUpdate.clinicaltrials_gov = updatedValues.clinicaltrials_gov;
@@ -63,9 +86,15 @@ export const createCEDARInstance = async (cedarUserUUID, metadataToRegister = { 
     body: JSON.stringify({
       cedar_user_uuid: cedarUserUUID,
       metadata: {
-        appl_id: metadataToRegister[STUDY_DATA_FIELD].study_metadata.metadata_location.nih_application_id,
-        project_title: metadataToRegister[STUDY_DATA_FIELD].study_metadata.minimal_info.study_name,
-        study_description_summary: metadataToRegister[STUDY_DATA_FIELD].study_metadata.minimal_info.study_description,
+        study_metadata: {
+          metadata_location: {
+            nih_application_id: metadataToRegister[STUDY_DATA_FIELD].study_metadata.metadata_location.nih_application_id,
+          },
+          minimal_info: {
+            study_name: metadataToRegister[STUDY_DATA_FIELD].study_metadata.minimal_info.study_name,
+            study_description: metadataToRegister[STUDY_DATA_FIELD].study_metadata.minimal_info.study_description,
+          },
+        },
         clinicaltrials_gov: metadataToRegister.clinicaltrials_gov,
       },
     }),
@@ -162,4 +191,19 @@ export const doesUserHaveRequestPending = async (
     throw new Error(`Encountered error while checking for existing request: ${JSON.stringify(res)}`);
   }
   return !!res.data?.length;
+};
+
+export const handleDataDictionaryNameValidation = (_:object, userInput:string): Promise<boolean|void> => {
+  if (userInput.length > validFileNameChecks.maximumAllowedFileNameLength) {
+    return Promise.reject(
+      `Data Dictionary name length is greater than ${validFileNameChecks.maximumAllowedFileNameLength} characters`,
+    );
+  }
+  if (validFileNameChecks.invalidWindowsFileNames.includes(userInput)) {
+    return Promise.reject('Data Dictionary name is a reserved file name, please pick a different name.');
+  }
+  if (userInput.match(validFileNameChecks.fileNameCharactersCheckRegex)) {
+    return Promise.reject('Data Dictionary name can only use alphabetic and numeric characters, and []() ._-');
+  }
+  return Promise.resolve(true);
 };

@@ -72,16 +72,21 @@ const DiscoveryListView: React.FunctionComponent<Props> = (props: Props) => {
           if (props.config.features.authorization.enabled) {
             disabled = record[props.accessibleFieldName] !== AccessLevel.ACCESSIBLE;
           }
+
           // if enableFillRequestForm is true, we allow users to check the checkbox without login
           if (props.config.features.exportToWorkspace?.enableFillRequestForm
             && props.config.features.exportToWorkspace.enableFillRequestForm === true) {
             disabled = false;
           }
-          // disable checkbox if there's no manifest found for this study
+          // disable checkbox if there's no manifest or external file metadata (if metadata handoff is enabled) found for this study
           const exportToWorkspaceConfig = props.config.features.exportToWorkspace;
-          const { manifestFieldName } = exportToWorkspaceConfig;
+          const { manifestFieldName, enableExportFullMetadata } = exportToWorkspaceConfig;
           if (!record[manifestFieldName] || record[manifestFieldName].length === 0) {
-            disabled = true;
+            // put some hard-coded field names here, so that only checkboxes in proper table rows will be enabled
+            // TODO: this can be addressed by the cart feature
+            if (enableExportFullMetadata && (!record.external_file_metadata || record.external_file_metadata.length === 0)) {
+              disabled = true;
+            }
           }
           return { disabled };
         },
@@ -179,7 +184,7 @@ const DiscoveryListView: React.FunctionComponent<Props> = (props: Props) => {
               { config.features.tagsInDescription?.enabled
                 ? (
                   <div className='discovery-table__row-horizontal-content'>
-                    {record[config.minimalFieldMapping.tagsListFieldName]?.map(({ name, category }) => {
+                    {(record[config.minimalFieldMapping.tagsListFieldName] || []).map(({ name, category }) => {
                       const isSelected = !!props.selectedTags[name];
                       const color = getTagColor(category, config);
                       if (typeof name !== 'string') {

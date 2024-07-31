@@ -36,7 +36,7 @@ const MockTemplate = () => {
           setHomeTableState,
         }}
       >
-        <Home />
+        <Home selectedTeamProject='test' />
       </SharedContext.Provider>
     </QueryClientProvider>
   );
@@ -73,6 +73,7 @@ const getMockWorkflowList = () => {
   if (requestCount % 2 == 0) {
     workflowList.splice(0, 0, {
       name: 'argo-wrapper-workflow-' + createWorkflowNum(),
+      gen3username: `${(requestCount*Math.E).toString(36).substr(2, 5)}@aol.com`,
       wf_name: 'User Added WF Name ' + requestCount,
       uid: 'uid-' + requestCount,
       phase: getMockPhase(requestCount/2),
@@ -144,7 +145,14 @@ export const MockedError = MockTemplate.bind({});
 MockedError.parameters = {
   msw: {
     handlers: [
-      rest.post('', (req, res, ctx) => res(ctx.delay(800), ctx.status(403))),
+      rest.get(
+        'http://:argowrapperpath/ga4gh/wes/v2/workflows',
+        (req, res, ctx) => {
+          const { argowrapperpath } = req.params;
+          console.log(argowrapperpath);
+          return res(ctx.delay(1000), ctx.status(500), ctx.json({"test":123}));
+        }
+      ),
     ],
   },
 };

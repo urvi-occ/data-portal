@@ -26,7 +26,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   hostname, kayakoConfig, studyRegistrationConfig, useArboristUI,
 } from '../localconf';
-import { cleanUpFileRecord, generatePresignedURL } from './utils';
+import { cleanUpFileRecord, generatePresignedURL, handleDataDictionaryNameValidation } from './utils';
 import { createKayakoTicket } from '../utils';
 import { userHasMethodForServiceOnResource } from '../authMappingUtils';
 import { StudyRegistrationProps } from './StudyRegistration';
@@ -177,7 +177,7 @@ const DataDictionarySubmission: React.FunctionComponent<StudyRegistrationProps> 
               contents = contents.concat(`\n${key}: ${value}`);
             });
             // This is the CLI command to kick off the argo wf from AdminVM
-            const cliCmd = `argo submit -n argo --watch vlmd_submission_workflow.yaml -p data_dict_guid=${guid} -p dictionary_name="${formValues['Data Dictionary Name']}" -p study_id=${studyUID}`;
+            const cliCmd = `argo submit -n argo --watch HEAL-Workflows/vlmd_submission_workflows/vlmd_submission_wrapper.yaml -p data_dict_guid=${guid} -p dictionary_name="${formValues['Data Dictionary Name']}" -p study_id=${studyUID}`;
             contents = contents.concat(`\n\nCLI Command: ${cliCmd}`);
             createKayakoTicket(subject, fullName, email, contents, kayakoConfig?.kayakoDepartmentId).then(() => setFormSubmissionStatus({ status: 'success' }),
               (err) => {
@@ -342,7 +342,12 @@ const DataDictionarySubmission: React.FunctionComponent<StudyRegistrationProps> 
           <Form.Item
             name='Data Dictionary Name'
             label='Data Dictionary Name'
-            rules={[{ required: true }]}
+            rules={[
+              {
+                validator: handleDataDictionaryNameValidation,
+              },
+              { required: true },
+            ]}
           >
             <Input />
           </Form.Item>
